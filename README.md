@@ -1,7 +1,7 @@
 # Tongues of Time
 
 Turn modern words into the languages of the past, and hear how they may have sounded:
-Old Hungarian, Old English, Chaucer, Old Norse, Latin, Ancient Greek, Old Church Slavonic,
+Old Hungarian, Old English, Chaucer, Old Norse, Latin, Ancient Greek, Old Church Slavic,
 Old Persian, Sumerian, Akkadian, Middle Egyptian, Coptic, Classical Quechua and Nahuatl,
 Old Tupi, Old Japanese, Middle Chinese and more.
 
