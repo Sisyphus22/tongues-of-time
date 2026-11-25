@@ -1,0 +1,460 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Turn modern words into Old Hungarian, Old English, Sumerian, Egyptian, Latin and more, and hear how they may have sounded.">
+<link rel="icon" href="img/icon.png">
+<style>:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.APP_SITE = {"download":"https://github.com/Sisyphus22/tongues-of-time/releases/latest"};</script>
+<script src="web-backend.js"></script>
+<script src="app-shim.js"></script>
+</head><body>
+<title>Tongues of Time</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=Noto+Sans+Cuneiform&family=Noto+Sans+Egyptian+Hieroglyphs&family=Noto+Sans+Old+Hungarian&family=Noto+Sans+Old+Persian&family=Noto+Sans+Glagolitic&family=Noto+Sans+Coptic&family=Noto+Sans+Runic&display=swap">
+<style>
+/* Layout: a scriptorium desk at night. Left: your words, the language and the age. Right: the old page, its sound, and its words. */
+:root{
+  --ink:#100f12; --desk:#18161b; --desk-2:#211e25; --rule:#35303b; --rule-soft:#272330;
+  --vellum:#ece3d1; --faded:#a79e90; --dim:#6d665e;
+  --gold:#d9a84e; --lapis:#86a2e8; --verdigris:#7cc5a4; --ochre:#e0995c;
+  --black:"UnifrakturMaguntia", "Noto Serif", Georgia, serif;
+  --page:"Noto Serif", "Noto Sans Cuneiform", "Noto Sans Egyptian Hieroglyphs", "Noto Sans Old Hungarian", "Noto Sans Old Persian", "Noto Sans Glagolitic", "Noto Sans Coptic", "Noto Sans Runic", Georgia, serif;
+  --ui:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ink);color:var(--vellum)}
+body{font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance}
+
+header{padding-block:34px 18px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--rule-soft)}
+.mark{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600}
+h1{font-family:var(--black);font-weight:400;font-size:clamp(44px,7vw,82px);line-height:.95;color:var(--vellum)}
+h1 span{color:var(--gold)}
+.lede{color:var(--faded);max-width:52ch;margin:0;font-size:15px}
+
+main{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.15fr);gap:28px;padding-block:24px 40px}
+.panel{min-width:0}
+.label{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:600;margin:20px 0 8px}
+.label:first-child{margin-top:0}
+textarea#src{width:100%;min-height:118px;resize:vertical;background:var(--desk);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-family:var(--page);font-size:17px;line-height:1.5;color:var(--vellum)}
+textarea#src::placeholder{color:var(--dim)}
+.count{font-size:12px;color:var(--dim);text-align:right;margin-top:4px}
+.families{display:flex;flex-wrap:wrap;gap:6px}
+.fam{background:transparent;border:1px solid var(--rule);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--faded)}
+.fam:hover{color:var(--vellum);border-color:var(--faded)}
+.fam[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1b1307;font-weight:600}
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.stage{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--desk);border:1px solid var(--rule);border-radius:8px;padding:10px 12px}
+.stage:hover{border-color:var(--faded)}
+.stage[aria-pressed="true"]{border-color:var(--gold);background:var(--desk-2);box-shadow:inset 3px 0 0 var(--gold)}
+.stage b{font-weight:600;font-size:14.5px}
+.stage .when{font-size:12.5px;color:var(--gold)}
+.stage .famous{font-size:12.5px;color:var(--faded)}
+.sure{display:inline-block;margin-top:4px;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;width:max-content}
+.sure.s1{color:var(--verdigris)} .sure.s2{color:var(--gold)} .sure.s3{color:var(--ochre)}
+.opts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:18px}
+.opts label{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--faded)}
+.opts select{background:var(--desk);border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
+.go{display:flex;gap:10px;align-items:center;margin-top:18px}
+.btn{background:var(--desk-2);border:1px solid var(--rule);border-radius:7px;padding:9px 14px;font-size:14px;font-weight:500}
+.btn:hover{border-color:var(--faded)}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#1b1307;font-weight:600;padding:11px 20px;font-size:15px}
+.btn.primary:hover{background:#e8bb68}
+.btn[disabled]{opacity:.5;cursor:default}
+.status{font-size:13px;color:var(--faded);min-height:1.4em}
+
+.page{background:var(--desk);border:1px solid var(--rule);border-radius:12px;padding:26px 26px 28px;position:relative;overflow:hidden}
+.page::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 100% 0%,rgba(217,168,78,.08),transparent 60%)}
+.page > *{position:relative}
+.ex{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--lapis);border:1px solid var(--lapis);border-radius:999px;padding:1px 8px;margin-bottom:10px}
+.p-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.p-head h2{font-family:var(--page);font-weight:600;font-size:20px}
+.p-head .when{color:var(--gold);font-size:13.5px}
+.from{color:var(--dim);font-size:13.5px;margin:8px 0 0;font-style:italic;font-family:var(--page)}
+.old{font-family:var(--page);font-size:clamp(24px,3vw,34px);line-height:1.35;margin:16px 0 0;color:var(--vellum);overflow-wrap:anywhere}
+.roman{font-family:var(--page);font-style:italic;color:var(--faded);font-size:17px;margin:8px 0 0;overflow-wrap:anywhere}
+.script{font-family:var(--page);font-size:28px;line-height:1.5;margin:12px 0 0;color:var(--gold);overflow-wrap:anywhere}
+.script small{display:block;font-family:var(--ui);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sound{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-soft);align-items:baseline}
+.sound dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.sound dd{margin:0;font-family:var(--page);font-size:17px;overflow-wrap:anywhere}
+.sound dd.ipa{color:var(--lapis)}
+.play{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+.play .btn{display:inline-flex;align-items:center;gap:8px}
+.play .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.play .btn.speaking .dot{background:var(--verdigris);box-shadow:0 0 0 4px rgba(124,197,164,.18)}
+.play .hint{font-size:12px;color:var(--dim)}
+.gloss{margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-soft)}
+.gloss table{width:100%;border-collapse:collapse;font-size:14px}
+.gloss td{padding:7px 8px 7px 0;border-top:1px solid var(--rule-soft);vertical-align:top}
+.gloss tr:first-child td{border-top:0}
+.gloss td.w{font-family:var(--page);font-weight:600;color:var(--gold);white-space:nowrap}
+.gloss td.n{color:var(--faded);font-size:13px}
+.notes{margin:16px 0 0;color:var(--faded);font-size:14px;max-width:70ch}
+.conf{display:inline-block;margin-left:6px;font-size:11px;border:1px solid currentColor;border-radius:999px;padding:0 7px}
+.recent{margin-top:22px}
+.recent ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.recent li button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--rule-soft);padding:8px 2px;color:var(--vellum)}
+.recent li:first-child button{border-top:0}
+.recent li button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--page)}
+.recent li button small{color:var(--dim)}
+.recent li button:hover span{color:var(--gold)}
+.letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.letters div{background:var(--desk);border:1px solid var(--rule-soft);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--faded)}
+.letters b{font-family:var(--page);font-size:22px;color:var(--gold);font-weight:400;margin-right:6px}
+footer{padding-block:20px 40px;color:var(--dim);font-size:12px;border-top:1px solid var(--rule-soft)}
+footer p{margin:0 0 6px}
+@media (max-width:900px){ main{grid-template-columns:minmax(0,1fr)} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+
+<header class="wrap">
+  <div class="mark">
+    <div class="eyebrow">Hear the past speak</div>
+    <h1>Tongues <span>of</span> Time</h1>
+  </div>
+  <p class="lede">Write something in any modern language. Claude turns it into the language as it was centuries or millennia ago, and reads it aloud as it may have sounded.</p>
+</header>
+
+<main class="wrap">
+  <section class="panel" aria-label="Your words">
+    <label class="label" for="src">Your words</label>
+    <textarea id="src" maxlength="400" placeholder="Type in English, Hungarian or any modern language. For example: The moon is rising over the forest and the wolves are howling."></textarea>
+    <div class="count" id="count">0 / 400</div>
+
+    <span class="label" id="famLabel">Language</span>
+    <div class="families" id="families" role="group" aria-labelledby="famLabel"></div>
+
+    <span class="label" id="stageLabel">Age</span>
+    <div class="stages" id="stages" role="group" aria-labelledby="stageLabel"></div>
+
+    <div class="opts">
+      <label for="reader">Sound-it-out guide for
+        <select id="reader"><option value="English">English speakers</option><option value="Hungarian">Hungarian speakers</option></select>
+      </label>
+      <label for="autoplay"><input type="checkbox" id="autoplay" checked> Read it aloud when it's ready</label>
+    </div>
+
+    <div class="go">
+      <button class="btn primary" id="goBtn" type="button">Turn back time</button>
+      <button class="btn" id="stopBtn" type="button" hidden>Stop</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+
+    <div class="recent" id="recentBox" hidden>
+      <span class="label">Your recent translations</span>
+      <ul id="recent"></ul>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="The old page" aria-live="polite">
+    <article class="page" id="page"></article>
+
+    <span class="label" style="margin-top:22px">Old letters you'll meet</span>
+    <div class="letters">
+      <div><b>þ</b>thorn: "th" in thin</div>
+      <div><b>ð</b>eth: "th" in this</div>
+      <div><b>ȝ</b>yogh: "y" or a throaty "gh"</div>
+      <div><b>æ</b>ash: "a" in cat</div>
+      <div><b>ſ</b>long s: just "s"</div>
+      <div><b>ꜣ ꜥ</b>Egyptian: glottal sounds</div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Translations and pronunciations come from Claude and can contain mistakes. Spelling and sound changed from place to place, and for the oldest languages the pronunciation is an educated reconstruction. The voice is a modern one reading a respelling, so treat it as a rough idea of the sound.</p>
+  <p>© 2026 Valeria · All rights reserved · Made with Claude</p>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+function el(tag, attrs, ...kids){
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
+  }
+  kids.flat().forEach(c => { if (c != null && c !== false) n.append(c instanceof Node ? c : document.createTextNode(String(c))); });
+  return n;
+}
+
+/* sure: 1 = sound well known, 2 = partly reconstructed, 3 = largely reconstructed */
+const FAMILIES = [
+  {id:"hu", name:"Hungarian", stages:[
+    {id:"hu-old", name:"Old Hungarian", when:"around 1195", famous:"Halotti beszéd, the Funeral Sermon", sure:2, voice:"hu",
+      form:"Latin letters in the style of the Halotti beszéd and the Ómagyar Mária-siralom, with their spelling habits.", script:"Old Hungarian rovás (Székely-Hungarian runic) script"},
+    {id:"hu-mid", name:"Middle Hungarian", when:"around 1590", famous:"the Károli Bible, Balassi's poems", sure:1, voice:"hu",
+      form:"Latin letters with the spelling of the Vizsoly (Károli) Bible of 1590.", script:"Old Hungarian rovás (Székely-Hungarian runic) script"}
+  ]},
+  {id:"en", name:"English", stages:[
+    {id:"en-oe", name:"Old English", when:"around 1000", famous:"Beowulf manuscript, Ælfric", sure:2, voice:"en",
+      form:"West Saxon spelling with þ, ð and æ; mark long vowels with macrons (ā, ē); write w, not wynn."},
+    {id:"en-eme", name:"Early Middle English", when:"around 1250", famous:"Sumer is icumen in, Ancrene Wisse · the Werwulf era", sure:2, voice:"en",
+      form:"Southern or West Midland spelling of the 1200s, with þ and ȝ where scribes used them and the i- prefix on past participles."},
+    {id:"en-lme", name:"Late Middle English", when:"around 1390", famous:"Chaucer's London", sure:1, voice:"en",
+      form:"Chaucer's London spelling."},
+    {id:"en-emod", name:"Early Modern English", when:"around 1600", famous:"Shakespeare, the King James Bible", sure:1, voice:"en",
+      form:"Spelling of around 1600, with thou/thee/thy where natural."}
+  ]},
+  {id:"de", name:"German", stages:[
+    {id:"de-ohg", name:"Old High German", when:"around 850", famous:"the Hildebrandslied", sure:2, voice:"de", form:"Old High German spelling of the 800s."},
+    {id:"de-mhg", name:"Middle High German", when:"around 1200", famous:"the Nibelungenlied, Walther von der Vogelweide", sure:1, voice:"de", form:"normalised Middle High German spelling (as in scholarly editions)."}
+  ]},
+  {id:"romance", name:"French · Spanish · Italian", stages:[
+    {id:"fr-old", name:"Old French", when:"around 1100", famous:"the Song of Roland", sure:2, voice:"it", form:"Old French spelling of the 1100s."},
+    {id:"es-old", name:"Old Spanish", when:"around 1200", famous:"Cantar de mio Cid", sure:1, voice:"es", form:"Old Spanish (Castilian) spelling of the 1200s."},
+    {id:"es-gold", name:"Golden Age Spanish", when:"around 1600", famous:"Cervantes, Don Quixote", sure:1, voice:"es", form:"spelling of around 1600, as in the first edition of Don Quixote."},
+    {id:"it-dante", name:"Dante's Italian", when:"around 1310", famous:"the Divine Comedy", sure:1, voice:"it", form:"Florentine of Dante's time."}
+  ]},
+  {id:"classical", name:"Latin · Greek", stages:[
+    {id:"la", name:"Classical Latin", when:"around 50 BCE", famous:"Cicero, Virgil", sure:1, voice:"it", form:"Classical Latin; mark long vowels with macrons."},
+    {id:"grc", name:"Ancient Greek", when:"around 400 BCE", famous:"Athens of Plato and Sophocles", sure:2, voice:"it", form:"Attic Greek in the Greek alphabet with accents; give a transliteration in roman."},
+    {id:"koine", name:"Koine Greek", when:"around 50 CE", famous:"the New Testament", sure:2, voice:"it", form:"Koine Greek in the Greek alphabet with accents; give a transliteration in roman."}
+  ]},
+  {id:"norse", name:"Norse", stages:[
+    {id:"non", name:"Old Norse", when:"around 1200", famous:"the Icelandic sagas, the Eddas · the Vikings", sure:2, voice:"de", form:"normalised Old Norse spelling (with þ, ð, æ, ø, á).", script:"Younger Futhark runes"}
+  ]},
+  {id:"slavic", name:"Slavic", stages:[
+    {id:"cu", name:"Old Church Slavonic", when:"around 900", famous:"Saints Cyril and Methodius", sure:2, voice:"sr", form:"early Cyrillic; give a transliteration in roman.", script:"Glagolitic script"},
+    {id:"sr-ch", name:"Serbian Church Slavonic", when:"around 1186", famous:"Miroslav's Gospel", sure:2, voice:"sr", form:"early Cyrillic of the Serbian recension; give a transliteration in roman."}
+  ]},
+  {id:"persian", name:"Persian", stages:[
+    {id:"peo", name:"Old Persian", when:"around 500 BCE", famous:"Darius the Great, the Behistun inscription", sure:2, voice:"it", form:"scholarly Latin transliteration.", script:"Old Persian cuneiform"},
+    {id:"pal", name:"Middle Persian", when:"around 500 CE", famous:"the Sasanian Empire", sure:2, voice:"it", form:"scholarly Latin transcription of Middle Persian (Pahlavi)."}
+  ]},
+  {id:"mesopotamia", name:"Mesopotamia", stages:[
+    {id:"sux", name:"Sumerian", when:"around 2100 BCE", famous:"Ur, King Shulgi, Gudea of Lagash", sure:3, voice:"it", form:"scholarly Latin transliteration with hyphens between signs (e.g. lugal-e).", script:"cuneiform signs"},
+    {id:"akk", name:"Babylonian Akkadian", when:"around 1750 BCE", famous:"Hammurabi's Babylon", sure:2, voice:"it", form:"normalised Old Babylonian transcription (e.g. šarrum).", script:"cuneiform signs"}
+  ]},
+  {id:"egypt", name:"Egyptian", stages:[
+    {id:"egy", name:"Middle Egyptian", when:"around 1900 BCE", famous:"the Story of Sinuhe", sure:3, voice:"it", form:"Egyptological transliteration (ꜣ, ꜥ, ḥ, ḫ, ẖ, š, ḳ, ṯ, ḏ).", script:"hieroglyphs"},
+    {id:"cop", name:"Coptic", when:"around 350 CE", famous:"the last stage of Egyptian", sure:2, voice:"it", form:"Sahidic Coptic in the Coptic alphabet; give a transliteration in roman."}
+  ]},
+  {id:"americas", name:"The Americas", stages:[
+    {id:"qu", name:"Classical Quechua", when:"around 1560", famous:"the Inca Empire, as recorded after the conquest", sure:2, voice:"es", form:"colonial-era Quechua spelling (as in Domingo de Santo Tomás, 1560)."},
+    {id:"nah", name:"Classical Nahuatl", when:"around 1550", famous:"the Aztecs, the Florentine Codex", sure:1, voice:"es", form:"classical Nahuatl spelling of the 1500s."},
+    {id:"tpw", name:"Old Tupi", when:"around 1595", famous:"Brazil's coast, Anchieta's grammar", sure:2, voice:"pt-BR", form:"Old Tupi as written by Anchieta."}
+  ]},
+  {id:"asia", name:"East Asia", stages:[
+    {id:"oj", name:"Old Japanese", when:"around 760", famous:"the Man'yōshū poems", sure:2, voice:"ja", form:"Japanese characters (kanji and kana); give the romanised Old Japanese in roman."},
+    {id:"ltc", name:"Middle Chinese", when:"around 750", famous:"Tang poetry, Li Bai and Du Fu", sure:3, voice:"it", form:"traditional Chinese characters; give Baxter's Middle Chinese transcription in roman."}
+  ]}
+];
+const STAGES = Object.fromEntries(FAMILIES.flatMap(f => f.stages.map(s => [s.id, Object.assign(s, {family: f.id})])));
+const VOICE_NAMES = {en:"English", hu:"Hungarian", de:"German", it:"Italian", es:"Spanish", "pt-BR":"Brazilian Portuguese", ja:"Japanese (katakana)", sr:"Serbian (Latin letters)"};
+const SURE_TEXT = {1:"Sound well known", 2:"Sound partly reconstructed", 3:"Sound largely reconstructed"};
+
+/* The opening example: the real first line of the Halotti beszéd (c. 1192–1195). */
+const EXAMPLE = {
+  example: true, stage:"hu-old", source:"Látjátok, barátaim, a szemetekkel, mik vagyunk. (Behold, my friends, with your own eyes, what we are.)",
+  translation:"Látjátuk feleim szümtükhel, mik vogymuk.",
+  roman:"", script:"",
+  say:"LAAT-yaa-tuk FE-le-im SÜM-tük-hel, mik VOGY-muk",
+  ipa:"[ˈlaːtjaːtuk ˈfɛlɛim ˈsymtykhɛl mik ˈvoɟmuk]",
+  voice:"Látyátuk feleim szümtükhel, mik vogymuk.",
+  glossary:[
+    {old:"Látjátuk", modern:"látjátok · you see", note:"the old -uk ending later became -ok"},
+    {old:"feleim", modern:"barátaim, testvéreim · my fellows, brethren", note:"from fél, 'one's fellow'"},
+    {old:"szümtükhel", modern:"szemetekkel · with your eyes", note:"szüm is the old form of szem, 'eye'"},
+    {old:"mik", modern:"mik · what (things)", note:"unchanged after 800 years"},
+    {old:"vogymuk", modern:"vagyunk · we are", note:"o later opened to a"}
+  ],
+  notes:"This is the real opening of the Halotti beszéd, written down around 1192–1195. It is the oldest surviving connected text in Hungarian. Its letters were Latin, so some sounds, such as ü and gy, had to be guessed at by the scribe.",
+  confidence:"high"
+};
+
+const S = { family:"hu", stage:"hu-old", sample:null, tts:null, ctl:null, result:EXAMPLE, speaking:false };
+try { const p = JSON.parse(localStorage.getItem("tot.prefs") || "{}"); if (STAGES[p.stage]) { S.stage = p.stage; S.family = STAGES[p.stage].family; } if (p.reader) $("reader").value = p.reader; if (p.autoplay === false) $("autoplay").checked = false; } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem("tot.prefs", JSON.stringify({stage:S.stage, reader:$("reader").value, autoplay:$("autoplay").checked})); } catch (e) {} };
+
+/* ---------- pickers ---------- */
+function renderFamilies(){
+  $("families").replaceChildren(...FAMILIES.map(f => el("button", {type:"button", class:"fam", "aria-pressed": String(f.id === S.family), onclick: () => { S.family = f.id; if (STAGES[S.stage].family !== f.id) S.stage = f.stages[0].id; renderFamilies(); renderStages(); savePrefs(); }}, f.name)));
+}
+function renderStages(){
+  const fam = FAMILIES.find(f => f.id === S.family);
+  $("stages").replaceChildren(...fam.stages.map(s => el("button", {type:"button", class:"stage", "aria-pressed": String(s.id === S.stage), onclick: () => { S.stage = s.id; renderStages(); savePrefs(); }},
+    el("b", null, s.name), el("span", {class:"when"}, s.when), el("span", {class:"famous"}, s.famous), el("span", {class:"sure s" + s.sure}, SURE_TEXT[s.sure]))));
+}
+$("src").addEventListener("input", () => { $("count").textContent = $("src").value.length + " / 400"; });
+$("reader").addEventListener("change", savePrefs);
+$("autoplay").addEventListener("change", savePrefs);
+
+/* ---------- result page ---------- */
+function renderPage(r){
+  const st = STAGES[r.stage];
+  const page = $("page"); page.replaceChildren();
+  if (r.example) page.append(el("span", {class:"ex"}, "Example · a real text from around 1195"));
+  page.append(el("div", {class:"p-head"}, el("h2", null, st.name), el("span", {class:"when"}, st.when)));
+  if (r.source) page.append(el("p", {class:"from"}, "From: " + r.source));
+  page.append(el("p", {class:"old", lang:"und", dir:"auto"}, r.translation));
+  if (r.roman) page.append(el("p", {class:"roman"}, r.roman));
+  if (r.script) page.append(el("p", {class:"script", dir:"auto"}, el("small", null, "In " + (st.script || "its own script")), r.script));
+  const dl = el("dl", {class:"sound"});
+  if (r.say) dl.append(el("dt", null, "Say it"), el("dd", null, r.say));
+  if (r.ipa) dl.append(el("dt", null, "IPA"), el("dd", {class:"ipa"}, r.ipa));
+  page.append(dl);
+  const play = el("div", {class:"play"});
+  if (S.tts && r.voice) {
+    const b = el("button", {type:"button", class:"btn" + (S.speaking ? " speaking" : ""), id:"speakBtn", onclick: () => S.speaking ? S.tts.stop() : speak(r)}, el("span", {class:"dot"}), S.speaking ? "Stop" : "Hear it");
+    play.append(b, el("span", {class:"hint"}, S.tts.kind === "device"
+      ? "Your device's built-in voices read a respelling. For Hungarian and other voices, Microsoft Edge has the widest choice."
+      : "A modern " + (VOICE_NAMES[st.voice] || "").replace(/ \(.*\)/, "") + " voice reading a respelling"));
+  } else if (!S.tts) play.append(el("span", {class:"hint"}, "Reading aloud isn't available in this view."));
+  play.append(el("button", {type:"button", class:"btn", onclick: e => copyText(r, e.currentTarget)}, "Copy"));
+  page.append(play);
+  if (Array.isArray(r.glossary) && r.glossary.length) {
+    page.append(el("div", {class:"gloss"}, el("span", {class:"label", style:"margin-top:0"}, "Word by word"),
+      el("table", null, el("tbody", null, r.glossary.map(g => el("tr", null, el("td", {class:"w"}, g.old), el("td", null, g.modern), el("td", {class:"n"}, g.note || "")))))));
+  }
+  const conf = {high:["fairly confident","var(--verdigris)"], medium:["some guesswork","var(--gold)"], low:["a lot of guesswork","var(--ochre)"]}[r.confidence];
+  page.append(el("p", {class:"notes"}, r.notes || "", conf ? el("span", {class:"conf", style:"color:" + conf[1]}, conf[0]) : null));
+}
+async function copyText(r, btn){
+  const text = [r.translation, r.roman, r.script, r.say ? "Say it: " + r.say : "", r.ipa].filter(Boolean).join("\n");
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; setTimeout(() => btn.textContent = "Copy", 1400); }
+  catch (e) { const sel = window.getSelection(); const range = document.createRange(); range.selectNodeContents($("page").querySelector(".old")); sel.removeAllRanges(); sel.addRange(range); btn.textContent = "Selected, press Ctrl+C"; }
+}
+
+/* ---------- speaking ---------- */
+async function speak(r){
+  if (!S.tts || !r.voice) return;
+  const wanted = STAGES[r.stage].voice;
+  const chain = [...new Set([wanted, "it", "es", "en"])];
+  for (const lang of chain) {
+    try {
+      await S.tts.speak(String(r.voice).slice(0, 1500), {language: lang, rate: 0.85});
+      if (lang !== wanted && S.tts.kind === "device") $("status").textContent = "This device has no " + (VOICE_NAMES[wanted] || wanted).replace(/ \(.*\)/, "") + " voice, so a " + (VOICE_NAMES[lang] || lang) + " one read it. You can add voices in your system's speech settings.";
+      return;
+    } catch (e) {
+      if (e && ["stopped","busy","rate_limited","not_granted"].includes(e.code)) {
+        if (e.code === "not_granted") { S.tts = null; renderPage(S.result); }
+        if (e.code === "busy") $("status").textContent = "The voice is busy. Try again in a moment.";
+        return;
+      }
+    }
+  }
+  $("status").textContent = "The voice couldn't read this one.";
+}
+
+/* ---------- Claude ---------- */
+function buildPrompt(st, text, reader){
+  const vname = VOICE_NAMES[st.voice] || "Italian";
+  return [
+    "You are an expert historical linguist helping with an educational app that shows how languages changed.",
+    "Rewrite the user's text in " + st.name + " as it was written " + st.when + " (think of " + st.famous + ").",
+    "Writing: " + st.form,
+    "Rules:",
+    "- Use vocabulary and grammar that are attested or well reconstructed for that stage. Avoid words borrowed later.",
+    "- If something did not exist yet (telephones, cars, Australia, and so on), use what people then would have said, and mention it in notes.",
+    "- Keep the meaning and tone, and keep it about as long as the original. The text may be in any modern language.",
+    "- Never invent facts about the language. Where the form or sound is uncertain, say so in notes and lower confidence.",
+    "",
+    "Return only one JSON object with these fields:",
+    '"translation": the text in ' + st.name + ".",
+    '"roman": a Latin-letter transliteration, or "" if translation already uses Latin letters.',
+    '"script": ' + (st.script ? "the text written in " + st.script + " if you can write it reliably, otherwise \"\"." : '"".'),
+    '"say": an easy sound-it-out guide for ' + reader + " speakers, written in " + (reader === "Hungarian" ? "Hungarian spelling" : "English spelling") + ", syllables joined by hyphens, the stressed syllable in CAPITALS.",
+    '"ipa": broad IPA in [square brackets] of the reconstructed pronunciation.',
+    '"voice": a respelling in ' + vname + " spelling that a " + vname + " text-to-speech voice, reading normally, would pronounce as close as possible to the reconstructed sound. Plain words and punctuation only: no IPA, hyphens or capitals for stress.",
+    '"glossary": an array of 4 to 10 of the most interesting words, each {"old": the old word, "modern": its meaning in ' + (reader === "Hungarian" ? "Hungarian, then English after a ·" : "English") + ', "note": a short note on origin or grammar}.',
+    '"notes": one to three short sentences for a curious learner, including what is uncertain.',
+    '"confidence": "high", "medium" or "low".',
+    "",
+    "Text:",
+    '"""' + text + '"""'
+  ].join("\n");
+}
+const clean = v => (typeof v === "string" ? v.trim().slice(0, 2000) : "");
+function validate(x, st, source){
+  if (!x || typeof x !== "object" || !clean(x.translation)) throw {code:"invalid_json"};
+  return {
+    stage: st.id, source,
+    translation: clean(x.translation), roman: clean(x.roman), script: st.script ? clean(x.script) : "",
+    say: clean(x.say), ipa: clean(x.ipa), voice: clean(x.voice),
+    glossary: Array.isArray(x.glossary) ? x.glossary.slice(0, 12).map(g => ({old: clean(g && g.old), modern: clean(g && g.modern), note: clean(g && g.note)})).filter(g => g.old) : [],
+    notes: clean(x.notes), confidence: ["high","medium","low"].includes(x.confidence) ? x.confidence : "medium"
+  };
+}
+function errCopy(e){
+  const c = e && e.code;
+  if (["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c)) return "Claude isn't available on this page for you.";
+  if (c === "rate_limited") return e.reason === "usage_limit" ? "You've reached your Claude usage limit. Try again later." : "Too many requests at once. Wait a moment and try again.";
+  if (c === "session_expired") return "Your session expired. Sign in to Claude again.";
+  if (c === "refused") return "Claude declined that text. Try different words.";
+  if (c === "invalid_json") return "The answer came back garbled. Press the button to try again.";
+  if (c === "cancelled") return "Stopped.";
+  if (c === "no_key") return "Add your Anthropic API key with Connect Claude (top right) to translate.";
+  if (c === "invalid_key") return "Your API key was rejected. Check it with Connect Claude.";
+  if (c === "offline") return "Can't reach Claude. Check your internet connection.";
+  if (c === "api_error" && e.message) return "Claude API: " + String(e.message).slice(0, 200);
+  return "Something went wrong reaching Claude. Try again.";
+}
+async function translate(){
+  const text = $("src").value.trim();
+  if (!text) { $("status").textContent = "Write a few words first."; $("src").focus(); return; }
+  if (!S.sample) { $("status").textContent = "Claude isn't available in this view. Open Tongues of Time in Claude."; return; }
+  if (S.ctl) S.ctl.abort();
+  const ctl = S.ctl = new AbortController();
+  const st = STAGES[S.stage], reader = $("reader").value;
+  $("goBtn").disabled = true; $("stopBtn").hidden = false;
+  $("status").textContent = "Claude is turning back the clock to " + st.name + ", " + st.when + "…";
+  try {
+    const x = await S.sample.json(buildPrompt(st, text, reader), {signal: ctl.signal});
+    const r = validate(x, st, text);
+    S.result = r; renderPage(r); addRecent(r);
+    $("status").textContent = "";
+    if ($("autoplay").checked) speak(r);
+  } catch (e) {
+    $("status").textContent = errCopy(e);
+    if (e && ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)) S.sample = null;
+  } finally {
+    if (S.ctl === ctl) S.ctl = null;
+    $("goBtn").disabled = !S.sample; $("stopBtn").hidden = true;
+  }
+}
+$("goBtn").addEventListener("click", translate);
+$("stopBtn").addEventListener("click", () => { if (S.ctl) S.ctl.abort(); });
+$("src").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) translate(); });
+
+/* ---------- recent ---------- */
+let recent = [];
+try { const r = JSON.parse(localStorage.getItem("tot.recent") || "[]"); if (Array.isArray(r)) recent = r.filter(x => x && STAGES[x.stage] && x.translation).slice(0, 8); } catch (e) {}
+function addRecent(r){ recent = [r, ...recent.filter(x => x.translation !== r.translation)].slice(0, 8); try { localStorage.setItem("tot.recent", JSON.stringify(recent)); } catch (e) {} renderRecent(); }
+function renderRecent(){
+  $("recentBox").hidden = !recent.length;
+  $("recent").replaceChildren(...recent.map(r => el("li", null, el("button", {type:"button", onclick: () => { S.result = r; renderPage(r); }}, el("span", null, r.translation), el("small", null, STAGES[r.stage].name)))));
+}
+
+/* ---------- website version: download link ---------- */
+if (window.APP_SITE && window.APP_SITE.download) {
+  document.querySelector("header").append(el("p", {class:"lede", style:"margin:0"}, "Get the free app for Windows, Mac and Linux: ",
+    el("a", {href: window.APP_SITE.download, target:"_blank", rel:"noopener", style:"color:var(--gold)"}, "download it here")));
+}
+
+/* ---------- boot ---------- */
+renderFamilies(); renderStages(); renderPage(EXAMPLE); renderRecent();
+if (window.claude && window.claude.use) {
+  window.claude.use("sample").then(s => { S.sample = s; if (!s) $("status").textContent = "Claude isn't available in this view."; $("goBtn").disabled = !s; });
+  window.claude.use("tts").then(t => {
+    S.tts = t;
+    if (t) t.onState(({state}) => { S.speaking = state === "speaking" || state === "starting"; const b = $("speakBtn"); if (b) { b.classList.toggle("speaking", S.speaking); b.lastChild.textContent = S.speaking ? "Stop" : "Hear it"; } });
+    renderPage(S.result);
+  });
+} else {
+  $("status").textContent = "Open Tongues of Time in Claude to translate.";
+}
+})();
+</script>
+
+</body></html>

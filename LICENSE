@@ -1,0 +1,16 @@
+Tongues of Time
+Copyright (c) 2026 Valeria. All rights reserved.
+
+Made with Claude (Anthropic).
+
+This repository is published so people can use the Tongues of Time website and
+download the desktop app for personal use. No licence is granted to copy, modify,
+redistribute, republish or create derivative works from the code, design, written
+content, images or other material in this repository, in whole or in part, without
+written permission from the copyright holder.
+
+Languages and their history are not owned by anyone. You are free to make your own
+tools about them; please don't copy this one.
+
+Translating connects to Anthropic's API with each user's own API key.
+Use of Claude is subject to Anthropic's own terms.
