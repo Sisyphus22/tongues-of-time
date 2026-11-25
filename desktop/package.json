@@ -1,89 +1,89 @@
 {
-    "name":  "tongues-of-time",
-    "productName":  "Tongues of Time",
-    "version":  "0.1.0",
-    "description":  "Turn modern words into historical languages and hear how they may have sounded, with Claude built in.",
-    "author":  {
-                   "name":  "Valeria",
-                   "email":  "29075642+Sisyphus22@users.noreply.github.com"
-               },
-    "homepage":  "https://sisyphus22.github.io/tongues-of-time/",
-    "private":  true,
-    "main":  "main.js",
-    "scripts":  {
-                    "page":  "node scripts/build-page.js",
-                    "start":  "npm run page \u0026\u0026 electron .",
-                    "dist":  "npm run page \u0026\u0026 electron-builder --win",
-                    "dist:mac":  "npm run page \u0026\u0026 electron-builder --mac",
-                    "dist:linux":  "npm run page \u0026\u0026 electron-builder --linux"
-                },
-    "build":  {
-                  "appId":  "app.tonguesoftime.desktop",
-                  "productName":  "Tongues of Time",
-                  "copyright":  "Copyright Â© 2026 Valeria. All rights reserved.",
-                  "artifactName":  "Tongues-of-Time-${version}-${os}-${arch}.${ext}",
-                  "files":  [
-                                "main.js",
-                                "preload.js",
-                                "app/**/*",
-                                "build/icon.png",
-                                "package.json"
-                            ],
-                  "directories":  {
-                                      "output":  "dist"
-                                  },
-                  "win":  {
-                              "target":  [
-                                             {
-                                                 "target":  "nsis",
-                                                 "arch":  [
-                                                              "x64"
-                                                          ]
-                                             }
-                                         ],
-                              "icon":  "build/icon.png"
-                          },
-                  "nsis":  {
-                               "oneClick":  false,
-                               "perMachine":  false,
-                               "allowToChangeInstallationDirectory":  true,
-                               "createDesktopShortcut":  true,
-                               "createStartMenuShortcut":  true,
-                               "shortcutName":  "Tongues of Time"
-                           },
-                  "mac":  {
-                              "target":  [
-                                             {
-                                                 "target":  "dmg",
-                                                 "arch":  [
-                                                              "arm64",
-                                                              "x64"
-                                                          ]
-                                             }
-                                         ],
-                              "category":  "public.app-category.education",
-                              "icon":  "build/icon.png",
-                              "identity":  "-"
-                          },
-                  "linux":  {
-                                "target":  [
-                                               "AppImage",
-                                               "deb"
-                                           ],
-                                "category":  "Education",
-                                "icon":  "build/icon.png",
-                                "synopsis":  "Hear modern words in historical languages",
-                                "maintainer":  "Valeria \u003c29075642+Sisyphus22@users.noreply.github.com\u003e"
-                            }
-              },
-    "dependencies":  {
-                         "@anthropic-ai/sdk":  "^1.13.0"
-                     },
-    "devDependencies":  {
-                            "electron":  "^45.4.1",
-                            "electron-builder":  "^26.18.0"
-                        },
-    "allowScripts":  {
-                         "electron-winstaller@5.4.0":  true
-                     }
+  "name": "tongues-of-time",
+  "productName": "Tongues of Time",
+  "version": "0.1.1",
+  "description": "Turn modern words into historical languages and hear how they may have sounded, with Claude built in.",
+  "author": {
+    "name": "Valeria",
+    "email": "29075642+Sisyphus22@users.noreply.github.com"
+  },
+  "homepage": "https://sisyphus22.github.io/tongues-of-time/",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "page": "node scripts/build-page.js",
+    "start": "npm run page && electron .",
+    "dist": "npm run page && electron-builder --win",
+    "dist:mac": "npm run page && electron-builder --mac",
+    "dist:linux": "npm run page && electron-builder --linux"
+  },
+  "build": {
+    "appId": "app.tonguesoftime.desktop",
+    "productName": "Tongues of Time",
+    "copyright": "Copyright Â© 2026 Valeria. All rights reserved.",
+    "artifactName": "Tongues-of-Time-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tongues of Time"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "icon": "build/icon.png",
+      "identity": "-"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "icon": "build/icon.png",
+      "synopsis": "Hear modern words in historical languages",
+      "maintainer": "Valeria <29075642+Sisyphus22@users.noreply.github.com>"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true
+  }
 }
