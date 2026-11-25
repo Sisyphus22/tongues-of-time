@@ -87,7 +87,7 @@
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return null;
     const synth = window.speechSynthesis;
     const listeners = new Set();
-    let state = "idle";
+    let state = "idle", lastSpoke = 0;
     const setState = (s, reason) => { state = s; listeners.forEach((f) => { try { f({ state: s, reason }); } catch (e) { console.error(e); } }); };
     const voicesReady = () => new Promise((resolve) => {
       if (synth.getVoices().length) { resolve(); return; }
@@ -97,7 +97,21 @@
     });
     const pick = (lang) => {
       const all = synth.getVoices(); const l = String(lang || "en").toLowerCase(); const base = l.split("-")[0];
-      return all.find((v) => v.lang.toLowerCase() === l) || all.find((v) => v.lang.toLowerCase().replace("_", "-").split("-")[0] === base) || null;
+      const ok = all.filter((v) => v.lang.toLowerCase().replace("_", "-") === l || v.lang.toLowerCase().replace("_", "-").split("-")[0] === base);
+      // Prefer the natural-sounding voices (Windows "Natural"/"Online", Google, Apple premium) over the old robotic ones.
+      const score = (v) => (/natural|neural|online|premium|enhanced/i.test(v.name) ? 4 : 0) + (/google/i.test(v.name) ? 2 : 0) + (v.lang.toLowerCase().replace("_", "-") === l ? 1 : 0);
+      return ok.sort((a, b) => score(b) - score(a))[0] || null;
+    };
+    // Long text is spoken in short pieces: some browsers silently stop a single utterance after about 15 seconds.
+    const pieces = (text) => {
+      const list = (Array.isArray(text) ? text : [text]).map((p) => (p && typeof p === "object" ? p.text : p)).map((p) => String(p || "").trim()).filter(Boolean);
+      const out = [];
+      for (const p of list) for (const sent of p.match(/[^.!?…]+[.!?…]+["”’)\]]*\s*|[^.!?…]+$/g) || [p]) {
+        let t = sent.trim(); if (!t) continue;
+        while (t.length > 240) { const cut = t.lastIndexOf(" ", 240) > 80 ? t.lastIndexOf(" ", 240) : 240; out.push(t.slice(0, cut)); t = t.slice(cut).trim(); }
+        if (out.length && out[out.length - 1].length + t.length < 180) out[out.length - 1] += " " + t; else out.push(t);
+      }
+      return out;
     };
     return {
       kind: "device",
@@ -107,19 +121,37 @@
         const lang = opts.language || "en";
         const voice = pick(lang);
         if (!voice && !/^en/i.test(lang)) throw { code: "unavailable", message: "No " + lang + " voice on this device" };
+        const parts = pieces(text);
+        if (!parts.length) return;
+        // Avoid a clipped first word: let a cancelled voice finish stopping, then wake the speakers
+        // (Windows and Bluetooth audio often sleep and swallow the first half-second) with a silent word.
+        const wasBusy = synth.speaking || synth.pending;
         synth.cancel();
+        await new Promise((r) => setTimeout(r, wasBusy ? 250 : 80));
+        synth.resume();
+        if (Date.now() - lastSpoke > 15000) {
+          const w = new SpeechSynthesisUtterance("Hmm.");
+          w.volume = 0; if (voice) { w.voice = voice; w.lang = voice.lang; }
+          synth.speak(w);
+        }
         return new Promise((resolve, reject) => {
-          const u = new SpeechSynthesisUtterance(String(text));
-          if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = lang;
-          u.rate = Math.min(1.5, Math.max(0.5, opts.rate || 1));
-          u.onstart = () => setState("speaking");
-          u.onend = () => { setState("idle", "completed"); resolve(); };
-          u.onerror = (e) => {
-            setState("idle", e.error);
-            reject(e.error === "interrupted" || e.error === "canceled" ? { code: "stopped", message: e.error } : { code: "upstream_error", message: e.error });
-          };
+          let settled = false;
           setState("starting");
-          synth.speak(u);
+          parts.forEach((part, i) => {
+            const u = new SpeechSynthesisUtterance(part);
+            if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = lang;
+            u.rate = Math.min(1.5, Math.max(0.5, opts.rate || 1));
+            if (opts.pitch) u.pitch = Math.min(2, Math.max(0, opts.pitch));
+            u.addEventListener("end", () => { lastSpoke = Date.now(); });
+            if (i === 0) u.onstart = () => setState("speaking");
+            if (i === parts.length - 1) u.onend = () => { if (!settled) { settled = true; setState("idle", "completed"); resolve(); } };
+            u.onerror = (e) => {
+              if (settled) return; settled = true;
+              setState("idle", e.error);
+              reject(e.error === "interrupted" || e.error === "canceled" ? { code: "stopped", message: e.error } : { code: "upstream_error", message: e.error });
+            };
+            synth.speak(u);
+          });
         });
       },
       stop() { synth.cancel(); setState("idle", "stopped"); return Promise.resolve(); },
