@@ -307,8 +307,10 @@ function renderPage(r){
   const play = el("div", {class:"play"});
   if (S.tts && r.voice) {
     const b = el("button", {type:"button", class:"btn" + (S.speaking ? " speaking" : ""), id:"speakBtn", onclick: () => S.speaking ? S.tts.stop() : speak(r)}, el("span", {class:"dot"}), S.speaking ? "Stop" : "Hear it");
-    play.append(b, el("span", {class:"hint"}, S.tts.kind === "device"
-      ? "Your device's built-in voices read a respelling. For Hungarian and other voices, Microsoft Edge has the widest choice."
+    play.append(b, el("span", {class:"hint"}, S.tts.kind === "narrator"
+      ? "Your fish.audio narrator reading a respelling"
+      : S.tts.kind === "device"
+      ?"Your device's built-in voices read a respelling. For Hungarian and other voices, Microsoft Edge has the widest choice."
       : "A modern " + (VOICE_NAMES[st.voice] || "").replace(/ \(.*\)/, "") + " voice reading a respelling"));
   } else if (!S.tts) play.append(el("span", {class:"hint"}, "Reading aloud isn't available in this view."));
   play.append(el("button", {type:"button", class:"btn", onclick: e => copyText(r, e.currentTarget)}, "Copy"));
@@ -451,6 +453,7 @@ if (window.claude && window.claude.use) {
     if (t) t.onState(({state}) => { S.speaking = state === "speaking" || state === "starting"; const b = $("speakBtn"); if (b) { b.classList.toggle("speaking", S.speaking); b.lastChild.textContent = S.speaking ? "Stop" : "Hear it"; } });
     renderPage(S.result);
   });
+  window.addEventListener("app-voice-change", () => renderPage(S.result)); // the desktop app's narrator was switched on or off
 } else {
   $("status").textContent = "Open Tongues of Time in Claude to translate.";
 }

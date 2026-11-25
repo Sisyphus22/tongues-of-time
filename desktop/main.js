@@ -98,10 +98,89 @@ ipcMain.handle("claude:ask", async (event, { id, prompt }) => {
 });
 ipcMain.handle("claude:abort", (_e, id) => { const c = running.get(id); if (c) c.abort(); });
 
+/* ---------- narrator voice (fish.audio, with the user's own key) ---------- */
+const VOICE_API = (!require("electron").app.isPackaged && process.env.FISH_API_BASE) || "https://api.fish.audio"; // a local test server only in development
+const VOICE_KEYS_PAGE = "https://fish.audio/app/api-keys/";
+const VOICE_MODELS = {
+  "s2.1-pro-free": "Free model (fish.audio's free tier)",
+  "s2.1-pro": "Best quality (about 1.5 cents per 1,000 letters)",
+};
+const DEFAULT_VOICE_MODEL = "s2.1-pro-free";
+const VOICES = {
+  "76a298d92ef647e39e01fe0572e68459": "Medieval Grime: deep, somber and dramatic",
+  "ef9c79b62ef34530bf452c0e50e3c260": "Horror: deep, calm and mysterious",
+  "7131193661114896bb7ca2ec3d0e3e03": "Bible Story Teller: deep, resonant and calm",
+  "8906b5268cae414fb9b8d3da6e84413d": "Measured Storyteller: clear and calm (woman)",
+};
+const DEFAULT_VOICE = "7131193661114896bb7ca2ec3d0e3e03";
+const VOICE_LANGS = new Set(["en", "zh", "ja", "ko", "fr", "de", "es", "it", "pt", "nl", "pl", "ru", "ar"]);
+function getVoiceKey() {
+  if (settings.voiceKeyEnc && safeStorage.isEncryptionAvailable()) {
+    try { return safeStorage.decryptString(Buffer.from(settings.voiceKeyEnc, "base64")); } catch { return null; }
+  }
+  return process.env.FISH_API_KEY || null;
+}
+function voiceError(status, detail) {
+  if (status === 401 || status === 403) return { ok: false, code: "invalid_voice_key", message: "fish.audio didn't accept the narrator key. Paste a working key in Connect Claude." };
+  if (status === 402) return { ok: false, code: "voice_no_credit", message: "Your fish.audio account needs credit for this voice model. In Connect Claude, switch the narrator to the free model, or add credit at fish.audio." };
+  if (status === 429) return { ok: false, code: "busy", message: "The narrator is busy. Try again in a moment." };
+  if (status === 404) return { ok: false, code: "voice_not_found", message: "fish.audio couldn't find that voice. Pick another narrator voice in Connect Claude." };
+  return { ok: false, code: "upstream_error", message: "The narrator couldn't speak (fish.audio said " + status + (detail ? ": " + detail : "") + ")." };
+}
+const voiceRunning = new Map();
+ipcMain.handle("voice:speak", async (_e, { id, text, language }) => {
+  const key = getVoiceKey();
+  if (!key) return { ok: false, code: "no_voice_key", message: "No narrator key" };
+  text = String(text || "").trim().slice(0, 5000);
+  if (!text) return { ok: false, code: "api_error", message: "Nothing to say" };
+  const ctl = new AbortController();
+  voiceRunning.set(id, ctl);
+  const body = { text, reference_id: /^[0-9a-f]{32}$/.test(settings.voiceId || "") ? settings.voiceId : DEFAULT_VOICE, format: "mp3", mp3_bitrate: 128, latency: "normal", normalize: true };
+  const lang = String(language || "").toLowerCase().split("-")[0];
+  const call = (b) => fetch(VOICE_API + "/v1/tts", {
+    method: "POST", signal: ctl.signal, body: JSON.stringify(b),
+    headers: { Authorization: "Bearer " + key, "Content-Type": "application/json", model: VOICE_MODELS[settings.voiceModel] ? settings.voiceModel : DEFAULT_VOICE_MODEL },
+  });
+  try {
+    let res = await call(VOICE_LANGS.has(lang) ? { ...body, language: lang } : body);
+    if ((res.status === 400 || res.status === 422) && VOICE_LANGS.has(lang)) res = await call(body);
+    if (!res.ok) {
+      let detail = "";
+      try { detail = String((await res.json()).message || "").slice(0, 160); } catch {}
+      return voiceError(res.status, detail);
+    }
+    return { ok: true, audio: new Uint8Array(await res.arrayBuffer()), type: "audio/mpeg" };
+  } catch (err) {
+    if (err && err.name === "AbortError") return { ok: false, code: "stopped", message: "Stopped" };
+    return { ok: false, code: "offline", message: "Can't reach fish.audio for the narrator. Check your internet connection." };
+  } finally {
+    voiceRunning.delete(id);
+  }
+});
+ipcMain.handle("voice:abort", (_e, id) => { const c = voiceRunning.get(id); if (c) c.abort(); });
+ipcMain.handle("settings:setVoiceKey", async (_e, key) => {
+  key = String(key || "").trim();
+  if (!key) return { ok: false, message: "Paste a fish.audio key first." };
+  if (!safeStorage.isEncryptionAvailable()) return { ok: false, message: "This computer has no secure storage available for the key, so it wasn't saved." };
+  try {
+    const res = await fetch(VOICE_API + "/model?self=true&page_size=1", { headers: { Authorization: "Bearer " + key } });
+    if (res.status === 401 || res.status === 403) return { ok: false, message: "fish.audio didn't accept that key. Check you copied all of it." };
+  } catch { return { ok: false, message: "Can't reach fish.audio to check the key. Check your internet connection." }; }
+  settings.voiceKeyEnc = safeStorage.encryptString(key).toString("base64");
+  saveSettings();
+  return { ok: true, settings: publicSettings() };
+});
+ipcMain.handle("settings:clearVoiceKey", () => { delete settings.voiceKeyEnc; saveSettings(); return publicSettings(); });
+ipcMain.handle("settings:setVoice", (_e, id) => { if (/^[0-9a-f]{32}$/.test(String(id))) { settings.voiceId = String(id); saveSettings(); } return publicSettings(); });
+ipcMain.handle("settings:setVoiceModel", (_e, m) => { if (VOICE_MODELS[m]) { settings.voiceModel = m; saveSettings(); } return publicSettings(); });
+ipcMain.handle("open:voiceKeys", () => shell.openExternal(VOICE_KEYS_PAGE));
+
 /* ---------- settings ---------- */
 const publicSettings = () => ({
   hasKey: !!getKey(), fromEnv: !settings.keyEnc && !!process.env.ANTHROPIC_API_KEY,
   model: settings.model, models: MODELS, canEncrypt: safeStorage.isEncryptionAvailable(),
+  hasVoiceKey: !!getVoiceKey(), voiceId: /^[0-9a-f]{32}$/.test(settings.voiceId || "") ? settings.voiceId : DEFAULT_VOICE, voices: VOICES,
+  voiceModel: VOICE_MODELS[settings.voiceModel] ? settings.voiceModel : DEFAULT_VOICE_MODEL, voiceModels: VOICE_MODELS,
 });
 ipcMain.handle("settings:get", () => publicSettings());
 ipcMain.handle("settings:setKey", async (_e, key) => {
@@ -184,6 +263,7 @@ function createWindow() {
   win.loadURL("tongues://app/index.html");
   // Developer check: APP_SNAPSHOT=<file.png> [APP_SNAPSHOT_JS=<script>] saves a screenshot and quits.
   if (process.env.APP_SNAPSHOT) {
+    win.webContents.setAudioMuted(true);
     win.webContents.once("did-finish-load", async () => {
       await new Promise((r) => setTimeout(r, 2500));
       if (process.env.APP_SNAPSHOT_JS) {

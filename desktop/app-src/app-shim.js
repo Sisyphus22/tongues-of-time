@@ -159,7 +159,105 @@
       async voices() { await voicesReady(); return [...new Set(synth.getVoices().map((v) => v.lang))]; },
     };
   }
-  const tts = makeTts();
+  /* ---------- narrator: a real storyteller voice from fish.audio (desktop app only) ---------- */
+  const hasNarrator = typeof A.voiceSpeak === "function";
+  let narratorOn = false;
+  const stripCues = (t) => String(t || "").replace(/\[[^\]\n]{1,40}\]\s*/g, "");
+  function toast(msg) {
+    let t = document.getElementById("appToast");
+    if (!t) { t = document.createElement("div"); t.id = "appToast"; t.className = "app-toast"; t.setAttribute("role", "status"); document.body.append(t); }
+    t.textContent = msg; t.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => { t.hidden = true; }, 8000);
+  }
+  function makeNarrator() {
+    const listeners = new Set();
+    let state = "idle", run = null;
+    const setState = (s, reason) => { state = s; listeners.forEach((f) => { try { f({ state: s, reason }); } catch (e) { console.error(e); } }); };
+    // Paragraph-sized pieces: the first one starts quickly, and the next is fetched while one plays.
+    const chunks = (text) => {
+      const out = [];
+      for (const para of String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean)) {
+        for (const sent of para.match(/[^.!?…]+[.!?…]+["”’)\]]*\s*|[^.!?…]+$/g) || [para]) {
+          const t = sent.trim(); if (!t) continue;
+          const last = out[out.length - 1];
+          if (last && !last.para && last.text.length + t.length < 650) last.text += " " + t; else out.push({ text: t });
+        }
+        if (out.length) out[out.length - 1].para = true;
+      }
+      if (out.length > 1 && out[0].text.length > 260) { // start talking sooner: split a long first piece
+        const s = out[0].text.match(/[^.!?…]+[.!?…]+\s*/g);
+        if (s && s.length > 1) out.splice(0, 1, { text: s[0].trim() }, { text: s.slice(1).join("").trim(), para: out[0].para });
+      }
+      return out.map((o) => o.text.slice(0, 4000));
+    };
+    function playBytes(bytes, type, me) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(new Blob([bytes], { type: type || "audio/mpeg" }));
+        const a = new Audio(url);
+        const done = (fn, v) => { URL.revokeObjectURL(url); me.audio = null; fn(v); };
+        me.audio = a; me.stopAudio = () => { a.pause(); done(reject, { code: "stopped", message: "Stopped" }); };
+        a.onplaying = () => setState("speaking");
+        a.onended = () => done(resolve);
+        a.onerror = () => done(reject, { code: "upstream_error", message: "The narrator's audio couldn't be played." });
+        a.play().catch((e) => done(reject, { code: "upstream_error", message: String(e && e.message || e) }));
+      });
+    }
+    const n = {
+      kind: "narrator",
+      async speak(text, opts) {
+        n.stop();
+        const me = run = { stopped: false, ids: [] };
+        const parts = chunks(text);
+        if (!parts.length) return;
+        setState("starting");
+        const fetchPart = (p) => { const id = newId(8); me.ids.push(id); return A.voiceSpeak(id, p, opts && opts.language); };
+        let next = fetchPart(parts[0]);
+        try {
+          for (let i = 0; i < parts.length; i++) {
+            const r = await next;
+            if (me.stopped) throw { code: "stopped", message: "Stopped" };
+            if (!r || !r.ok) throw { code: (r && r.code) || "upstream_error", message: (r && r.message) || "" };
+            next = i + 1 < parts.length ? fetchPart(parts[i + 1]) : null;
+            await playBytes(r.audio, r.type, me);
+          }
+          if (run === me) setState("idle", "completed");
+        } catch (e) {
+          if (run === me) setState("idle", e.code);
+          throw e;
+        } finally { if (run === me) run = null; }
+      },
+      stop() {
+        const me = run;
+        if (me) { me.stopped = true; me.ids.forEach((id) => A.voiceAbort(id)); if (me.stopAudio && me.audio) me.stopAudio(); run = null; setState("idle", "stopped"); }
+        return Promise.resolve();
+      },
+      onState(f) { listeners.add(f); f({ state }); return () => listeners.delete(f); },
+      async voices() { return ["en"]; },
+    };
+    return n;
+  }
+  const deviceTts = makeTts();
+  const narrator = hasNarrator ? makeNarrator() : null;
+  // One read-aloud surface: the narrator when a fish.audio key is saved, otherwise the device's voices.
+  // If the narrator fails (no credit, offline...), the device voice reads it instead and a note says why.
+  const tts = deviceTts || narrator ? {
+    get kind() { return narratorOn ? "narrator" : "device"; },
+    async speak(text, opts) {
+      if (narratorOn) {
+        try { return await narrator.speak(text, opts); }
+        catch (e) {
+          if (!e || e.code === "stopped") throw e;
+          toast((e.message || "The narrator couldn't speak.") + (deviceTts ? " Your device's voice is reading it instead." : ""));
+          if (e.code === "invalid_voice_key") openSettings();
+          if (!deviceTts) throw e;
+        }
+      }
+      if (!deviceTts) throw { code: "unavailable", message: "Reading aloud isn't available" };
+      return deviceTts.speak(stripCues(text), opts);
+    },
+    stop() { if (narrator) narrator.stop(); return deviceTts ? deviceTts.stop() : Promise.resolve(); },
+    onState(f) { const offs = [deviceTts && deviceTts.onState(f), narrator && narrator.onState(f)].filter(Boolean); return () => offs.forEach((o) => o()); },
+    voices: () => (deviceTts ? deviceTts.voices() : Promise.resolve(["en"])),
+  } : null;
 
   window.claude = { use: async (name) => (name === "sample" ? sample : name === "tts" ? tts : name === "db" && hasStore ? db : name === "assets" && hasStore ? assets : null) };
 
@@ -170,6 +268,9 @@
   .app-gear i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
   .app-gear.on i{background:#7fd38a}
   .app-set{max-width:560px}
+  .app-toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:25;max-width:min(460px,calc(100vw - 32px));background:var(--panel-2,#211e25);color:var(--fg,#ece3d1);border:1px solid var(--gold,#d9a84e);border-radius:10px;padding:10px 14px;font:500 13.5px/1.45 var(--ui,system-ui,sans-serif);box-shadow:0 12px 30px rgba(0,0,0,.45)}
+  .app-modal h4{font-size:18px;font-weight:600;margin:0}
+  .app-modal .voice{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line,var(--rule,#35303b))}
   .app-set .modal-body p{color:var(--muted);font-size:14px;margin:8px 0 0}
   .app-set ol{color:var(--muted);font-size:14px;padding-left:20px;margin:10px 0 0}
   .app-set .ok{color:#7fd38a;font-size:13.5px}
@@ -197,7 +298,61 @@
   async function refreshGear() {
     const s = await A.settings();
     gear.classList.toggle("on", s.hasKey);
+    const wasOn = narratorOn;
+    narratorOn = hasNarrator && !!s.hasVoiceKey;
+    if (wasOn !== narratorOn) window.dispatchEvent(new Event("app-voice-change"));
     gear.lastChild.textContent = s.hasKey ? "Claude connected" : "Connect Claude";
+  }
+  function narratorSection(s) {
+    const st = h("p", { role: "status" });
+    const say = (cls, msg) => { st.className = cls; st.textContent = msg; };
+    const vkey = h("input", { id: "voiceKey", type: "password", autocomplete: "off", spellcheck: "false", placeholder: s.hasVoiceKey ? "A narrator key is saved. Paste a new one to replace it." : "Paste your fish.audio API key" });
+    const voices = Object.assign({}, s.voices);
+    const known = !!voices[s.voiceId];
+    const vsel = h("select", { id: "voicePick" }, Object.entries(voices).map(([v, label]) => h("option", { value: v }, label)), h("option", { value: "custom" }, "Another fish.audio voice (paste its link)"));
+    vsel.value = known ? s.voiceId : "custom";
+    const vcustom = h("input", { id: "voiceCustom", type: "text", autocomplete: "off", spellcheck: "false", placeholder: "Paste a fish.audio voice link or its ID", value: known ? null : s.voiceId });
+    const customField = h("div", { class: "field" }, h("label", { for: "voiceCustom" }, "Voice link or ID"), vcustom);
+    customField.hidden = known;
+    const vmodel = h("select", { id: "voiceModel" }, Object.entries(s.voiceModels).map(([v, label]) => h("option", { value: v }, label)));
+    vmodel.value = s.voiceModel;
+    vsel.addEventListener("change", async () => {
+      customField.hidden = vsel.value !== "custom";
+      if (vsel.value !== "custom") { await A.setVoice(vsel.value); say("ok", "Voice saved."); } else vcustom.focus();
+    });
+    vcustom.addEventListener("change", async () => {
+      const m = vcustom.value.match(/[0-9a-f]{32}/i);
+      if (!m) { say("err", "That doesn't look like a fish.audio voice link. Open the voice on fish.audio and copy the address from the top of the page."); return; }
+      await A.setVoice(m[0].toLowerCase()); say("ok", "Voice saved.");
+    });
+    vmodel.addEventListener("change", async () => { await A.setVoiceModel(vmodel.value); say("ok", "Voice model saved."); });
+    const saveKey = async () => {
+      say("", "Checking the key…");
+      const r = await A.setVoiceKey(vkey.value);
+      if (r.ok) { vkey.value = ""; await refreshGear(); say("ok", "Key saved. The narrator is ready: press Try the narrator."); }
+      else say("err", r.message);
+    };
+    vkey.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveKey(); } });
+    const tryIt = async () => {
+      if (!narratorOn) { say("err", "Save a fish.audio key first."); return; }
+      say("", "The narrator is getting ready…");
+      try { await narrator.speak("[softly] Long ago, when the old stories were still young, people gathered by the fire to listen. [pause] And this is one of them."); say("ok", "That's your narrator."); }
+      catch (e) { say(e && e.code === "stopped" ? "" : "err", e && e.code === "stopped" ? "" : (e && e.message) || "The narrator couldn't speak."); }
+    };
+    return h("div", { class: "voice" },
+      h("h4", null, "Narrator voice (optional)"),
+      h("p", null, "A real storyteller voice from fish.audio, instead of your computer's built-in voice. Make a fish.audio account, create an API key there and paste it here. The free model costs nothing."),
+      h("div", { class: "modal-actions" }, h("button", { class: "btn", type: "button", onclick: () => A.openVoiceKeysPage() }, "Open fish.audio API keys")),
+      h("div", { class: "field" }, h("label", { for: "voiceKey" }, "fish.audio API key"), vkey),
+      h("div", { class: "field" }, h("label", { for: "voicePick" }, "Voice"), vsel),
+      customField,
+      h("div", { class: "field" }, h("label", { for: "voiceModel" }, "Voice model"), vmodel),
+      h("p", { class: "small" }, "The narrator key is encrypted by your computer's secure storage and only sent to fish.audio, together with the text being read."),
+      st,
+      h("div", { class: "modal-actions" },
+        h("button", { class: "btn primary", type: "button", onclick: saveKey }, "Save narrator key"),
+        h("button", { class: "btn", type: "button", onclick: tryIt }, "Try the narrator"),
+        s.hasVoiceKey ? h("button", { class: "btn ghost", type: "button", onclick: async () => { narrator.stop(); await A.clearVoiceKey(); await refreshGear(); say("ok", "Narrator key removed. Your device's voice reads aloud again."); } }, "Remove narrator key") : null));
   }
   async function openSettings(reason) {
     if (settingsOpen) return;
@@ -239,6 +394,8 @@
       h("div", { class: "modal-actions" }, save,
         s.hasKey && !s.fromEnv ? h("button", { class: "btn ghost", type: "button", onclick: async () => { await A.clearKey(); await refreshGear(); close(); } }, "Remove key") : null,
         h("button", { class: "btn ghost", type: "button", onclick: () => close() }, "Close")));
+    if (hasNarrator) form.append(narratorSection(s));
+    else if (isWeb) form.append(h("p", { class: "small", style: "margin-top:16px" }, "Want a real storyteller voice instead of your computer’s? The desktop app can narrate with fish.audio voices."));
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); status.className = ""; status.textContent = "Checking the key…"; save.disabled = true;
       const r = await A.setKey(key.value, remember.checked);
